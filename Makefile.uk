@@ -65,6 +65,7 @@ LIBPTHREAD-EMBEDDED_EXPORTS = $(LIBPTHREAD-EMBEDDED_BASE)/exportsyms.uk
 # OS dependencies code - Glue between Unikraft and pthread-embedded
 ################################################################################
 LIBPTHREAD-EMBEDDED_SRCS-y += $(LIBPTHREAD-EMBEDDED_BASE)/pte_osal.c|glue
+LIBPTHREAD-EMBEDDED_SRCS-y += $(LIBPTHREAD-EMBEDDED_BASE)/attributes.c|glue
 
 ################################################################################
 # pthread-embedded code
