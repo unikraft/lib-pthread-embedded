@@ -450,6 +450,8 @@ pte_osResult pte_osSemaphoreCancellablePend(pte_osSemaphoreHandle h,
 	return result;
 }
 
+#if 0
+/* We use macros instead */
 /****************************************************************************
  *
  * Atomic Operations
@@ -489,6 +491,7 @@ int pte_osAtomicIncrement(int *pdest)
 {
 	return atomic_add(pdest, 1);
 }
+#endif
 
 /****************************************************************************
  *
