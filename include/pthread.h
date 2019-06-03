@@ -22,13 +22,14 @@
 #ifndef __GLUE_PTHREAD_H__
 #define __GLUE_PTHREAD_H__
 
-#include_next <pthread.h>
-
-/* C functions not implemented in pthread-embedded */
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+/* The C code in pthread.h is not guarded for C++ */
+#include_next <pthread.h>
+
+/* C functions not implemented in pthread-embedded */
 int pthread_attr_setguardsize(pthread_attr_t *attr, size_t guardsize);
 int pthread_attr_getguardsize(const pthread_attr_t *attr, size_t *guardsize);
 
