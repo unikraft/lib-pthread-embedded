@@ -66,6 +66,7 @@ LIBPTHREAD-EMBEDDED_EXPORTS = $(LIBPTHREAD-EMBEDDED_BASE)/exportsyms.uk
 ################################################################################
 LIBPTHREAD-EMBEDDED_SRCS-y += $(LIBPTHREAD-EMBEDDED_BASE)/pte_osal.c|glue
 LIBPTHREAD-EMBEDDED_SRCS-y += $(LIBPTHREAD-EMBEDDED_BASE)/attributes.c|glue
+LIBPTHREAD-EMBEDDED_SRCS-y += $(LIBPTHREAD-EMBEDDED_BASE)/pthread_atfork.c|glue
 
 ################################################################################
 # pthread-embedded code

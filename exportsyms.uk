@@ -83,6 +83,7 @@ pthread_rwlockattr_destroy
 pthread_rwlockattr_getpshared
 pthread_rwlockattr_setpshared
 pthread_kill
+pthread_atfork
 sched_yield
 sched_get_priority_min
 sched_get_priority_max
