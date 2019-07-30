@@ -88,4 +88,15 @@ sched_yield
 sched_get_priority_min
 sched_get_priority_max
 sched_setscheduler
+sem_close
+sem_destroy
+sem_getvalue
+sem_init
+sem_open
+sem_post
+sem_post_multiple
+sem_timedwait
+sem_trywait
+sem_unlink
+sem_wait
 pte_test_main
