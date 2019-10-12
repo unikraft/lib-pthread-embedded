@@ -51,13 +51,13 @@ CXXINCLUDES-$(CONFIG_LIBPTHREAD_EMBEDDED) += -I$(LIBPTHREAD-EMBEDDED_EXTRACTED)/
 ################################################################################
 # Global flags
 ################################################################################
-SUPPRESS_FLAGS += -Wno-unused-parameter \
+LIBPTHREAD-EMBEDDED_SUPPRESS_FLAGS += -Wno-unused-parameter \
 -Wno-unused-variable -Wno-unused-value -Wno-unused-function \
 -Wno-missing-field-initializers
 
-LIBPTHREAD-EMBEDDED_CFLAGS-y   += $(SUPPRESS_FLAGS) \
+LIBPTHREAD-EMBEDDED_CFLAGS-y   += $(LIBPTHREAD-EMBEDDED_SUPPRESS_FLAGS) \
 	-Wno-pointer-to-int-cast -Wno-int-to-pointer-cast
-LIBPTHREAD-EMBEDDED_CXXFLAGS-y += $(SUPPRESS_FLAGS)
+LIBPTHREAD-EMBEDDED_CXXFLAGS-y += $(LIBPTHREAD-EMBEDDED_SUPPRESS_FLAGS)
 
 LIBPTHREAD-EMBEDDED_EXPORTS = $(LIBPTHREAD-EMBEDDED_BASE)/exportsyms.uk
 
