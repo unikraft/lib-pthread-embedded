@@ -29,6 +29,15 @@ extern "C" {
 /* The C code in pthread.h is not guarded for C++ */
 #include_next <pthread.h>
 
+static inline unsigned long
+pthread_to_unsigned_long(pthread_t *t)
+{
+	unsigned long *_t;
+
+	_t = (unsigned long *) t;
+	return *_t;
+}
+
 int pthread_atfork(void (*prepare)(void),
 	void (*parent)(void), void (*child)(void));
 
