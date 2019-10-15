@@ -1,3 +1,5 @@
+pte_pop_cleanup
+pte_push_cleanup
 pte_test_main
 pthread_atfork
 pthread_attr_destroy
