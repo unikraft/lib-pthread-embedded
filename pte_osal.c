@@ -25,6 +25,7 @@
 
 #include <string.h>
 #include <uk/essentials.h>
+#include <uk/ctors_prio.h>
 #include <uk/arch/time.h>
 #include <uk/arch/atomic.h>
 #include <uk/print.h>
@@ -58,7 +59,8 @@ typedef struct {
  *
  ***************************************************************************/
 
-int __constructor pthread_constructor(void)
+UK_CTOR_ATTR(UK_CTOR_PRIO_PTHREAD_EMBEDDED)
+int pthread_constructor(void)
 {
 	uk_pr_debug("pthread-embedded constructor\n");
 	return pthread_init();
