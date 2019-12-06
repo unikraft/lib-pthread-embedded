@@ -57,6 +57,10 @@ int pthread_setname_np(pthread_t thread, const char *name);
 int pthread_getname_np(pthread_t thread, char *name, size_t len);
 #endif /* _GNU_SOURCE */
 
+int pthread_condattr_getclock(const pthread_condattr_t *__restrict attr,
+		clockid_t *__restrict clock_id);
+int pthread_condattr_setclock(pthread_condattr_t *attr, clockid_t clock_id);
+
 #ifdef __cplusplus
 }
 #endif

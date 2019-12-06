@@ -68,6 +68,7 @@ LIBPTHREAD-EMBEDDED_SRCS-y += $(LIBPTHREAD-EMBEDDED_BASE)/pte_osal.c|glue
 LIBPTHREAD-EMBEDDED_SRCS-y += $(LIBPTHREAD-EMBEDDED_BASE)/attributes.c|glue
 LIBPTHREAD-EMBEDDED_SRCS-y += $(LIBPTHREAD-EMBEDDED_BASE)/pthread_atfork.c|glue
 LIBPTHREAD-EMBEDDED_SRCS-y += $(LIBPTHREAD-EMBEDDED_BASE)/pthread_sigmask.c|glue
+LIBPTHREAD-EMBEDDED_SRCS-y += $(LIBPTHREAD-EMBEDDED_BASE)/pthread_condattr.c|glue
 
 ################################################################################
 # pthread-embedded code
