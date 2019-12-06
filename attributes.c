@@ -79,7 +79,6 @@ out:
 	return rc;
 }
 
-#ifdef _GNU_SOURCE
 int pthread_getattr_np(pthread_t thread, pthread_attr_t *attr)
 {
 	pte_thread_t *tp = (pte_thread_t *) thread.p;
@@ -150,5 +149,3 @@ int pthread_getname_np(pthread_t thread, char *name, size_t len)
 
 	return 0;
 }
-
-#endif /* _GNU_SOURCE */
