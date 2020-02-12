@@ -53,7 +53,7 @@ CXXINCLUDES-$(CONFIG_LIBPTHREAD_EMBEDDED) += -I$(LIBPTHREAD-EMBEDDED_EXTRACTED)/
 ################################################################################
 LIBPTHREAD-EMBEDDED_SUPPRESS_FLAGS += -Wno-unused-parameter \
 -Wno-unused-variable -Wno-unused-value -Wno-unused-function \
--Wno-missing-field-initializers
+-Wno-missing-field-initializers -Wno-strict-aliasing
 
 LIBPTHREAD-EMBEDDED_CFLAGS-y   += $(LIBPTHREAD-EMBEDDED_SUPPRESS_FLAGS) \
 	-Wno-pointer-to-int-cast -Wno-int-to-pointer-cast
