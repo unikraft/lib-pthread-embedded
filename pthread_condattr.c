@@ -23,19 +23,20 @@
 #include <errno.h>
 #include <time.h>
 #include <pthread.h>
-
+#include <implement.h>
 
 int pthread_condattr_getclock(const pthread_condattr_t *__restrict attr,
 		clockid_t *__restrict clock_id)
 {
-	WARN_STUBBED();
-	errno = ENOTSUP;
-	return -1;
+	*clock_id = (*attr)->clock & 0x7fffffff;
+	return 0;
 }
 
 int pthread_condattr_setclock(pthread_condattr_t *attr, clockid_t clock_id)
 {
-	WARN_STUBBED();
-	errno = ENOTSUP;
-	return -1;
+	if (clock_id < 0 || clock_id-2U < 2)
+		return EINVAL;
+	(*attr)->clock &= 0x80000000;
+	(*attr)->clock |= clock_id;
+	return 0;
 }
