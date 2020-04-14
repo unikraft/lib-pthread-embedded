@@ -59,8 +59,6 @@ LIBPTHREAD-EMBEDDED_CFLAGS-y   += $(LIBPTHREAD-EMBEDDED_SUPPRESS_FLAGS) \
 	-Wno-pointer-to-int-cast -Wno-int-to-pointer-cast
 LIBPTHREAD-EMBEDDED_CXXFLAGS-y += $(LIBPTHREAD-EMBEDDED_SUPPRESS_FLAGS)
 
-LIBPTHREAD-EMBEDDED_EXPORTS = $(LIBPTHREAD-EMBEDDED_BASE)/exportsyms.uk
-
 ################################################################################
 # OS dependencies code - Glue between Unikraft and pthread-embedded
 ################################################################################
