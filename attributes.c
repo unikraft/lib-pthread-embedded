@@ -145,7 +145,7 @@ int pthread_getname_np(pthread_t thread, char *name, size_t len)
 	if (len < _len + 1)
 		return ERANGE;
 
-	sprintf(name, _uk_thread->name);
+	sprintf(name,"%s", _uk_thread->name);
 
 	return 0;
 }
