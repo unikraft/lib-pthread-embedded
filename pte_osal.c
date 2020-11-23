@@ -24,6 +24,7 @@
  */
 
 #include <string.h>
+#include <stdlib.h>
 #include <uk/essentials.h>
 #include <uk/init.h>
 #include <uk/arch/time.h>
