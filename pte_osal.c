@@ -74,7 +74,7 @@ static int pthread_initcall(void)
 		initialized = true;
 	return result;
 }
-uk_lib_initcall(pthread_initcall);
+uk_early_initcall_prio(pthread_initcall, UK_PRIO_EARLIEST);
 
 pte_osResult pte_osInit(void)
 {
