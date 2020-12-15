@@ -63,6 +63,9 @@ LIBPTHREAD-EMBEDDED_CXXFLAGS-y += $(LIBPTHREAD-EMBEDDED_SUPPRESS_FLAGS)
 # OS dependencies code - Glue between Unikraft and pthread-embedded
 ################################################################################
 LIBPTHREAD-EMBEDDED_SRCS-y += $(LIBPTHREAD-EMBEDDED_BASE)/pte_osal.c|glue
+LIBPTHREAD-EMBEDDED_PTE_OSAL_GLUE_FLAGS-$(call gcc_version_ge,5,0) += -Wno-incompatible-pointer-types
+LIBPTHREAD-EMBEDDED_PTE_OSAL_GLUE_FLAGS-$(call gcc_version_ge,8,0) += -Wno-cast-function-type
+
 LIBPTHREAD-EMBEDDED_SRCS-y += $(LIBPTHREAD-EMBEDDED_BASE)/attributes.c|glue
 LIBPTHREAD-EMBEDDED_SRCS-y += $(LIBPTHREAD-EMBEDDED_BASE)/pthread_atfork.c|glue
 LIBPTHREAD-EMBEDDED_SRCS-y += $(LIBPTHREAD-EMBEDDED_BASE)/pthread_sigmask.c|glue
