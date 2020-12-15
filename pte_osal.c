@@ -25,6 +25,7 @@
 
 #include <string.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <uk/essentials.h>
 #include <uk/init.h>
 #include <uk/arch/time.h>
@@ -60,10 +61,18 @@ typedef struct {
  *
  ***************************************************************************/
 
+static bool initialized /* false */;
+
 static int pthread_initcall(void)
 {
+	int result;
+
 	uk_pr_debug("Initialize pthread-embedded\n");
-	return pthread_init();
+	result = pthread_init();
+
+	if (result == PTE_TRUE)
+		initialized = true;
+	return result;
 }
 uk_lib_initcall(pthread_initcall);
 
@@ -142,51 +151,150 @@ static void uk_stub_thread_entry(void *argv)
 	ptd->entry_point(ptd->argv);
 }
 
+/* NOTE: We need to be able to distinguish if we created a thread through
+ *       pthread API or through uksched API. In case of pthread_create()
+ *       we have to setup some different properties to the thread like creating
+ *       it in paused state.
+ *       In order to distinguish, we will use a magic number as entry function.
+ *       With the thread argument we forward the actual entry point and argument
+ *       vector. During creation our init callback will be executed by uksched
+ *       and we are able to check if we find our magic number again and handle
+ *       the initialization accordingly.
+ */
+
+/* Use a pointer that points to itself as magic number. This way we can be
+ * sure that the magic number (= pointer address) is unique and reserved
+ * for our purpose.
+ */
+static const void *PTE_CAPSULE_MAGIC = &PTE_CAPSULE_MAGIC;
+struct pte_entry_capsule {
+	pte_osThreadEntryPoint entry_point;
+	void *argv;
+};
+
 pte_osResult pte_osThreadCreate(pte_osThreadEntryPoint entry_point,
 	int stack_size, int initial_prio, void *argv,
 	pte_osThreadHandle *ph)
 {
-	pte_thread_data_t *ptd;
+	struct pte_entry_capsule capsule;
+	struct uk_thread *th;
 
-	ptd = malloc(sizeof(pte_thread_data_t));
-	if (!ptd)
+	capsule.entry_point = entry_point;
+	capsule.argv        = argv;
+
+	/* Create the Unikraft thread. This will cause that
+	 * pte_osInitThread() is called.
+	 */
+	th = uk_thread_create_attr(NULL, NULL,
+				   PTE_CAPSULE_MAGIC, &capsule);
+	if (!th)
 		return PTE_OS_NO_RESOURCES;
 
-	ptd->entry_point = entry_point;
-	ptd->argv = argv;
+	/* pte_osInitThread() should have setup a newly created
+	 * pte_thread_data_t which should be stored on th->prv
+	 */
+	UK_ASSERT(th->prv != NULL);
+
+	/* Return the thread handle */
+	*ph = th;
+	return PTE_OS_OK;
+}
+
+static int pte_osInitThread(struct uk_thread *th)
+{
+	pte_thread_data_t *ptd;
+	struct pte_entry_capsule *capsule;
+
+	/* NOTE: We reserve th->prv for our exclusive use,
+	 *       so it should be NULL when entering here
+	 */
+	UK_ASSERT(th->prv == NULL);
+
+	/* Initialize pte with first thread creation */
+	if (unlikely(!initialized)) {
+		uk_pr_warn("Thread %p created without " STRINGIFY(__LIBNAME__)
+			   " initialized. Utilizing the pthread API from this context may lead to memory leaks.\n",
+			   th);
+		return 0;
+	}
+
+	ptd = calloc(1, sizeof(pte_thread_data_t));
+	if (!ptd)
+		goto err_out;
 
 	/* Allocate TLS structure for this thread. */
 	ptd->tls = pteTlsThreadInit();
 	if (ptd->tls == NULL) {
 		uk_pr_err("Could not allocate TLS\n");
-		free(ptd);
-		return PTE_OS_NO_RESOURCES;
+		goto err_free_ptd;
 	}
 
-	uk_semaphore_init(&ptd->start_sem, 0);
+	/* How did we enter this function? */
+	if (th->entry == PTE_CAPSULE_MAGIC) {
+		/* This thread got created by pte_osThreadCreate()!
+		 * Lets have a look into the capsule.
+		 */
+		UK_ASSERT(th->arg);
+
+		capsule = (struct pte_entry_capsule *) th->arg;
+
+		ptd->entry_point = capsule->entry_point;
+		ptd->argv        = capsule->argv;
+
+		/* this thread has to wait for further setup */
+		uk_semaphore_init(&ptd->start_sem, 0);
+	} else {
+		/* We will encapsulate our thread entry point,
+		 * we have to move our actual entry to ptd
+		 */
+		ptd->entry_point = (pte_osThreadEntryPoint) th->entry;
+		ptd->argv        = th->arg;
+
+		/* uksched threads need to start automatically */
+		uk_semaphore_init(&ptd->start_sem, 1);
+	}
+
+	/* Setup encapsulated entry point */
+	th->entry = uk_stub_thread_entry;
+	th->arg   = ptd;
 	uk_semaphore_init(&ptd->cancel_sem, 0);
 	ptd->done = 0;
 
-	ptd->uk_thread = uk_thread_create_attr(NULL, NULL,
-		uk_stub_thread_entry, ptd);
-	if (ptd->uk_thread == NULL) {
-		pteTlsThreadDestroy(ptd->tls);
-		free(ptd);
-		return PTE_OS_NO_RESOURCES;
-	}
+	/* Store cross references (uk_thread <-> pte_thread_data_t) */
+	th->prv = ptd;
+	ptd->uk_thread = th;
 
 #if CONFIG_LIBUKSIGNAL
 	/* inherit signal mask */
 	ptd->uk_thread->signals_container.mask =
 		uk_thread_current()->signals_container.mask;
 #endif
+	return 0;
 
-	ptd->uk_thread->prv = ptd;
-
-	*ph = ptd->uk_thread;
-
-	return PTE_OS_OK;
+err_free_ptd:
+	free(ptd);
+err_out:
+	return -1;
 }
+
+static void pte_osFiniThread(struct uk_thread *th)
+{
+	pte_thread_data_t *ptd;
+
+	if (!th->prv) {
+		/* It seems that this is a thread that was created before
+		 * this library was initialized. We should not have
+		 * allocated anything for this thread.
+		 */
+		return;
+	}
+
+	ptd = th->prv;
+	pteTlsThreadDestroy(ptd->tls);
+	free(ptd);
+}
+
+UK_THREAD_INIT_PRIO(pte_osInitThread, pte_osFiniThread, UK_PRIO_EARLIEST);
 
 pte_osResult pte_osThreadStart(pte_osThreadHandle h)
 {
