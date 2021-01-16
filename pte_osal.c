@@ -103,6 +103,19 @@ out:
 	return result;
 }
 
+/***************************************************************************
+ *
+ * Signal handling
+ *
+ **************************************************************************/
+#if CONFIG_LIBUKSIGNAL
+int pte_kill(pte_osThreadHandle threadId, int sig)
+{
+	return uk_sig_thread_kill(threadId, sig);
+}
+#endif
+
+
 /****************************************************************************
  *
  * Threads
@@ -161,6 +174,12 @@ pte_osResult pte_osThreadCreate(pte_osThreadEntryPoint entry_point,
 		free(ptd);
 		return PTE_OS_NO_RESOURCES;
 	}
+
+#if CONFIG_LIBUKSIGNAL
+	/* inherit signal mask */
+	ptd->uk_thread->signals_container.mask =
+		uk_thread_current()->signals_container.mask;
+#endif
 
 	ptd->uk_thread->prv = ptd;
 

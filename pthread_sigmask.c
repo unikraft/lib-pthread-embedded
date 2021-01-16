@@ -21,9 +21,9 @@
 
 #include <uk/print.h>
 #include <signal.h>
+#include <uk/uk_signal.h>
 
 int pthread_sigmask(int how, const sigset_t *set, sigset_t *oldset)
 {
-	WARN_STUBBED();
-	return 0;
+	return uk_thread_sigmask(how, set, oldset);
 }

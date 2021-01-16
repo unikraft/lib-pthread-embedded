@@ -1,0 +1,24 @@
+diff --git a/pthread_kill.c b/pthread_kill.c
+index 3a6daf6..4ea7448 100644
+--- a/pthread_kill.c
++++ b/pthread_kill.c
+@@ -47,7 +47,9 @@
+ #include "pthread.h"
+ #include "implement.h"
+
+-#ifdef __hermit__
++#include <uk/config.h>
++
++#if CONFIG_LIBUKSIGNAL
+ int pte_kill(pte_osThreadHandle threadId, int sig);
+ #endif
+
+@@ -98,7 +100,7 @@ pthread_kill (pthread_t thread, int sig)
+
+   pte_osMutexUnlock(pte_thread_reuse_lock);
+
+-#ifdef __hermit__
++#if CONFIG_LIBUKSIGNAL
+   result = pte_kill(tp->threadId, sig);
+ #else
+   if (0 == result && 0 != sig)

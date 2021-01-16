@@ -4,12 +4,21 @@
 #include <uk/mutex.h>
 #include <uk/semaphore.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct uk_thread* pte_osThreadHandle;
 typedef struct uk_semaphore *pte_osSemaphoreHandle;
 typedef struct uk_mutex *pte_osMutexHandle;
 
 #define OS_MAX_SIMUL_THREADS \
 	CONFIG_LIBPTHREAD_EMBEDDED_MAX_SIMUL_THREADS
+
+#ifdef __cplusplus
+}
+#endif
+
 
 #include "pte_generic_osal.h"
 
