@@ -28,6 +28,7 @@
 #endif
 #include <pthread.h>
 #include <implement.h>
+#include <pte_osal.h>
 
 
 /* TODO We currently do not support guards */
@@ -93,7 +94,7 @@ int pthread_getattr_np(pthread_t thread, pthread_attr_t *attr)
 	if (attr == NULL || *attr == NULL)
 		return EINVAL;
 
-	_uk_thread = tp->threadId;
+	_uk_thread = pte_threadhandle_to_ukthread(tp->threadId);
 	_attr = *attr;
 	_attr->stackaddr = _uk_thread->stack;
 	_attr->stacksize = __STACK_SIZE;
@@ -119,7 +120,7 @@ int pthread_setname_np(pthread_t thread, const char *name)
 	if (tp == NULL || tp->threadId == NULL)
 		return ENOENT;
 
-	_uk_thread = tp->threadId;
+	_uk_thread = pte_threadhandle_to_ukthread(tp->threadId);
 
 	len = strnlen(name, 16);
 	if (len > 15)
@@ -139,7 +140,7 @@ int pthread_getname_np(pthread_t thread, char *name, size_t len)
 	if (tp == NULL || tp->threadId == NULL)
 		return ENOENT;
 
-	_uk_thread = tp->threadId;
+	_uk_thread = pte_threadhandle_to_ukthread(tp->threadId);
 
 	_len = strlen(_uk_thread->name);
 	if (len < _len + 1)

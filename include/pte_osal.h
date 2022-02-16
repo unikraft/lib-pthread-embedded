@@ -15,6 +15,9 @@ typedef struct uk_mutex *pte_osMutexHandle;
 #define OS_MAX_SIMUL_THREADS \
 	CONFIG_LIBPTHREAD_EMBEDDED_MAX_SIMUL_THREADS
 
+#define pte_threadhandle_to_ukthread(handle) \
+	((struct uk_thread *)(handle))
+
 #ifdef __cplusplus
 }
 #endif
