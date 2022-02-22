@@ -661,7 +661,7 @@ pte_osResult pte_osTlsFree(unsigned int index)
 
 int ftime(struct timeb *tb)
 {
-	__nsec now = ukplat_monotonic_clock();
+	__nsec now = ukplat_wall_clock();
 
 	if (tb) {
 		tb->time = ukarch_time_nsec_to_sec(now);
