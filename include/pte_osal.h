@@ -8,7 +8,7 @@
 extern "C" {
 #endif
 
-typedef struct uk_thread* pte_osThreadHandle;
+typedef struct pte_thread_data *pte_osThreadHandle;
 typedef struct uk_semaphore *pte_osSemaphoreHandle;
 typedef struct uk_mutex *pte_osMutexHandle;
 

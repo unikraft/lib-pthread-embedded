@@ -37,7 +37,7 @@
 #include "tls-helper.h"
 
 
-typedef struct {
+typedef struct pte_thread_data {
 	/* thread routine */
 	pte_osThreadEntryPoint entry_point;
 	/* thread routine arguments */
@@ -120,7 +120,7 @@ out:
 #if CONFIG_LIBUKSIGNAL
 int pte_kill(pte_osThreadHandle threadId, int sig)
 {
-	return uk_sig_thread_kill(threadId, sig);
+	return uk_sig_thread_kill(threadId->uk_thread, sig);
 }
 #endif
 
@@ -133,7 +133,7 @@ int pte_kill(pte_osThreadHandle threadId, int sig)
 
 static pte_thread_data_t *handle_to_ptd(pte_osThreadHandle h)
 {
-	return h->prv;
+	return h;
 }
 
 static pte_thread_data_t *current_ptd(void)
@@ -196,7 +196,7 @@ pte_osResult pte_osThreadCreate(pte_osThreadEntryPoint entry_point,
 	UK_ASSERT(th->prv != NULL);
 
 	/* Return the thread handle */
-	*ph = th;
+	*ph = th->prv;
 	return PTE_OS_OK;
 }
 
@@ -279,19 +279,7 @@ err_out:
 
 static void pte_osFiniThread(struct uk_thread *th)
 {
-	pte_thread_data_t *ptd;
-
-	if (!th->prv) {
-		/* It seems that this is a thread that was created before
-		 * this library was initialized. We should not have
-		 * allocated anything for this thread.
-		 */
-		return;
-	}
-
-	ptd = th->prv;
-	pteTlsThreadDestroy(ptd->tls);
-	free(ptd);
+	/* We clean up resources in pte_osThreadDelete() */
 }
 
 UK_THREAD_INIT_PRIO(pte_osInitThread, pte_osFiniThread, UK_PRIO_EARLIEST);
@@ -319,8 +307,11 @@ pte_osResult pte_osThreadDelete(pte_osThreadHandle h)
 
 pte_osResult pte_osThreadExitAndDelete(pte_osThreadHandle h)
 {
-	if (h->sched)
-		uk_thread_kill(h);
+	pte_thread_data_t *ptd = handle_to_ptd(h);
+	UK_ASSERT(ptd->uk_thread);
+
+	if (ptd->uk_thread->sched)
+		uk_thread_kill(ptd->uk_thread);
 	pte_osThreadDelete(h);
 
 	return PTE_OS_OK;
@@ -341,7 +332,13 @@ pte_osResult pte_osThreadWaitForEnd(pte_osThreadHandle h)
 
 	while (1) {
 		if (ptd->done) {
-			uk_thread_wait(ptd->uk_thread);
+			if (ptd->uk_thread) {
+				uk_thread_wait(ptd->uk_thread);
+
+				/* The thread is destroyed after the wait */
+				ptd->uk_thread = NULL;
+			}
+
 			return PTE_OS_OK;
 		}
 
@@ -374,7 +371,7 @@ pte_osResult pte_osThreadCheckCancel(pte_osThreadHandle h)
 
 pte_osThreadHandle pte_osThreadGetHandle(void)
 {
-	return uk_thread_current();
+	return current_ptd();
 }
 
 int pte_osThreadGetPriority(pte_osThreadHandle h)
