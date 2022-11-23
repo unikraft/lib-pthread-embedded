@@ -84,7 +84,7 @@ int pthread_getattr_np(pthread_t thread, pthread_attr_t *attr)
 	pte_thread_t *tp = (pte_thread_t *) thread.p;
 	struct uk_thread *_uk_thread;
 	pthread_attr_t _attr;
-	prio_t prio;
+	int prio = 0;
 	int rc;
 
 	if (tp == NULL || tp->threadId == NULL)
@@ -95,15 +95,17 @@ int pthread_getattr_np(pthread_t thread, pthread_attr_t *attr)
 
 	_uk_thread = tp->threadId;
 	_attr = *attr;
-	_attr->stackaddr = _uk_thread->stack;
+	_attr->stackaddr = _uk_thread->_mem.stack;
 	_attr->stacksize = __STACK_SIZE;
 
-	_attr->detachstate = (_uk_thread->detached
-		? PTHREAD_CREATE_DETACHED : PTHREAD_CREATE_JOINABLE);
+	/**
+	 *  The new Unikraft scheduling API does not implement
+	 *  detachable states.
+	 */
+	_attr->detachstate = PTHREAD_CREATE_JOINABLE;
 
-	rc = uk_thread_get_prio(_uk_thread, &prio);
-	if (rc == 0)
-		_attr->param.sched_priority = prio;
+	/* No priorities implemented. */
+	_attr->param.sched_priority = prio;
 
 	/* TODO inheritsched and contentionscope */
 

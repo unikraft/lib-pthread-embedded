@@ -32,6 +32,7 @@
 #include <uk/arch/atomic.h>
 #include <uk/print.h>
 #include <uk/thread.h>
+#include <uk/sched.h>
 #include "pte_osal.h"
 #include "pthread.h"
 #include "tls-helper.h"
@@ -67,7 +68,7 @@ static int pthread_initcall(void)
 {
 	int result;
 
-	uk_pr_debug("Initialize pthread-embedded\n");
+	uk_pr_info("Initialize pthread-embedded\n");
 	result = pthread_init();
 
 	if (result == PTE_TRUE)
@@ -105,7 +106,7 @@ pte_osResult pte_osInit(void)
 	}
 
 	crnt = uk_thread_current();
-	crnt->prv = ptd;
+	crnt->priv = ptd;
 	ptd->uk_thread = crnt;
 
 out:
@@ -120,7 +121,9 @@ out:
 #if CONFIG_LIBUKSIGNAL
 int pte_kill(pte_osThreadHandle threadId, int sig)
 {
-	return uk_sig_thread_kill(threadId->uk_thread, sig);
+	//return uk_sig_thread_kill(threadId->uk_thread, sig);
+	// FIXME after proper uksignal implementation is complete
+	return 0;
 }
 #endif
 
@@ -138,17 +141,20 @@ static pte_thread_data_t *handle_to_ptd(pte_osThreadHandle h)
 
 static pte_thread_data_t *current_ptd(void)
 {
-	return uk_thread_current()->prv;
+	return uk_thread_current()->priv;
 }
 
 static void uk_stub_thread_entry(void *argv)
 {
-	pte_thread_data_t *ptd = (pte_thread_data_t *) argv;
+	pte_thread_data_t *ptd =
+		(pte_thread_data_t *) uk_thread_current()->priv;
+
+	UK_ASSERT(ptd);
 
 	/* wait for the resume command */
 	uk_semaphore_down(&ptd->start_sem);
 
-	ptd->entry_point(ptd->argv);
+	ptd->entry_point(argv);
 }
 
 /* NOTE: We need to be able to distinguish if we created a thread through
@@ -168,6 +174,7 @@ static void uk_stub_thread_entry(void *argv)
  */
 static const void *PTE_CAPSULE_MAGIC = &PTE_CAPSULE_MAGIC;
 struct pte_entry_capsule {
+	void *magic;
 	pte_osThreadEntryPoint entry_point;
 	void *argv;
 };
@@ -178,25 +185,29 @@ pte_osResult pte_osThreadCreate(pte_osThreadEntryPoint entry_point,
 {
 	struct pte_entry_capsule capsule;
 	struct uk_thread *th;
+	struct uk_sched *s = uk_sched_current();
 
+	capsule.magic = PTE_CAPSULE_MAGIC;
 	capsule.entry_point = entry_point;
 	capsule.argv        = argv;
 
-	/* Create the Unikraft thread. This will cause that
-	 * pte_osInitThread() is called.
+	/* Create the Unikraft thread. This will cause that pte_osInitThread()
+	 * is called. The thread's priv pointer will point to the capsule
+	 * after thread creation.
 	 */
-	th = uk_thread_create_attr(NULL, NULL,
-				   PTE_CAPSULE_MAGIC, &capsule);
+
+	th = uk_sched_thread_create_fn1(s, uk_stub_thread_entry, argv,
+					0, 0, 0, NULL, &capsule, NULL);
 	if (!th)
 		return PTE_OS_NO_RESOURCES;
 
 	/* pte_osInitThread() should have setup a newly created
-	 * pte_thread_data_t which should be stored on th->prv
+	 * pte_thread_data_t which should be stored on th->priv
 	 */
-	UK_ASSERT(th->prv != NULL);
+	UK_ASSERT(th->priv);
 
 	/* Return the thread handle */
-	*ph = th->prv;
+	*ph = th->priv;
 	return PTE_OS_OK;
 }
 
@@ -204,11 +215,6 @@ static int pte_osInitThread(struct uk_thread *th)
 {
 	pte_thread_data_t *ptd;
 	struct pte_entry_capsule *capsule;
-
-	/* NOTE: We reserve th->prv for our exclusive use,
-	 *       so it should be NULL when entering here
-	 */
-	UK_ASSERT(th->prv == NULL);
 
 	/* Initialize pte with first thread creation */
 	if (unlikely(!initialized)) {
@@ -224,50 +230,53 @@ static int pte_osInitThread(struct uk_thread *th)
 
 	/* Allocate TLS structure for this thread. */
 	ptd->tls = pteTlsThreadInit();
-	if (ptd->tls == NULL) {
+	if (!ptd->tls) {
 		uk_pr_err("Could not allocate TLS\n");
 		goto err_free_ptd;
 	}
 
+	capsule = (struct pte_entry_capsule *)th->priv;
 	/* How did we enter this function? */
-	if (th->entry == PTE_CAPSULE_MAGIC) {
-		/* This thread got created by pte_osThreadCreate()!
-		 * Lets have a look into the capsule.
+	if (capsule && capsule->magic == PTE_CAPSULE_MAGIC) {
+		/*
+		 * Found the magic value. Thread was created
+		 * by pte_osThreadCreate().
 		 */
-		UK_ASSERT(th->arg);
-
-		capsule = (struct pte_entry_capsule *) th->arg;
-
 		ptd->entry_point = capsule->entry_point;
 		ptd->argv        = capsule->argv;
 
 		/* this thread has to wait for further setup */
 		uk_semaphore_init(&ptd->start_sem, 0);
 	} else {
+		/* Thread not created by pte_osThreadCreate()*/
+
+		free(ptd);
+		return 0;
+		/* TODO: Not implemented yet. */
 		/* We will encapsulate our thread entry point,
 		 * we have to move our actual entry to ptd
 		 */
-		ptd->entry_point = (pte_osThreadEntryPoint) th->entry;
-		ptd->argv        = th->arg;
+		//ptd->entry_point = (pte_osThreadEntryPoint) th->entry;
+		//ptd->argv        = th->arg;
 
 		/* uksched threads need to start automatically */
-		uk_semaphore_init(&ptd->start_sem, 1);
+		//uk_semaphore_init(&ptd->start_sem, 1);
 	}
 
 	/* Setup encapsulated entry point */
-	th->entry = uk_stub_thread_entry;
-	th->arg   = ptd;
+	//th->entry = uk_stub_thread_entry;
+	//th->arg   = ptd;
 	uk_semaphore_init(&ptd->cancel_sem, 0);
 	ptd->done = 0;
 
 	/* Store cross references (uk_thread <-> pte_thread_data_t) */
-	th->prv = ptd;
+	th->priv = ptd;
 	ptd->uk_thread = th;
 
 #if CONFIG_LIBUKSIGNAL
-	/* inherit signal mask */
-	ptd->uk_thread->signals_container.mask =
-		uk_thread_current()->signals_container.mask;
+	/* FIXME after uksignal implementation: inherit signal mask */
+	//ptd->uk_thread->signals_container.mask =
+	//	uk_thread_current()->signals_container.mask;
 #endif
 	return 0;
 
@@ -311,7 +320,7 @@ pte_osResult pte_osThreadExitAndDelete(pte_osThreadHandle h)
 	UK_ASSERT(ptd->uk_thread);
 
 	if (ptd->uk_thread->sched)
-		uk_thread_kill(ptd->uk_thread);
+		uk_thread_terminate(ptd->uk_thread);
 	pte_osThreadDelete(h);
 
 	return PTE_OS_OK;
@@ -333,7 +342,7 @@ pte_osResult pte_osThreadWaitForEnd(pte_osThreadHandle h)
 	while (1) {
 		if (ptd->done) {
 			if (ptd->uk_thread) {
-				uk_thread_wait(ptd->uk_thread);
+				uk_thread_block(ptd->uk_thread);
 
 				/* The thread is destroyed after the wait */
 				ptd->uk_thread = NULL;
@@ -377,9 +386,9 @@ pte_osThreadHandle pte_osThreadGetHandle(void)
 int pte_osThreadGetPriority(pte_osThreadHandle h)
 {
 	pte_thread_data_t *ptd = handle_to_ptd(h);
-	prio_t prio;
 
-	int ret = uk_thread_get_prio(ptd->uk_thread, &prio);
+	/* No priorities implemented. */
+	int ret = 0;
 
 	return ret ? PTE_OS_GENERAL_FAILURE : PTE_OS_OK;
 }
@@ -388,7 +397,8 @@ pte_osResult pte_osThreadSetPriority(pte_osThreadHandle h, int new_prio)
 {
 	pte_thread_data_t *ptd = handle_to_ptd(h);
 
-	int ret = uk_thread_set_prio(ptd->uk_thread, new_prio);
+	/* No priorities implemented. */
+	int ret = 0;
 
 	return ret ? PTE_OS_GENERAL_FAILURE : PTE_OS_OK;
 }
@@ -402,17 +412,20 @@ void pte_osThreadSleep(unsigned int msecs)
 
 int pte_osThreadGetMinPriority(void)
 {
-	return UK_THREAD_ATTR_PRIO_MIN;
+	/* No priorities implemented. */
+	return 0;
 }
 
 int pte_osThreadGetMaxPriority(void)
 {
-	return UK_THREAD_ATTR_PRIO_MAX;
+	/* No priorities implemented. */
+	return 0;
 }
 
 int pte_osThreadGetDefaultPriority(void)
 {
-	return UK_THREAD_ATTR_PRIO_DEFAULT;
+	/* No priorities implemented. */
+	return 0;
 }
 
 /****************************************************************************

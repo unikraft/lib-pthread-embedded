@@ -21,9 +21,12 @@
 
 #include <uk/print.h>
 #include <signal.h>
-#include <uk/uk_signal.h>
+#include <errno.h>
 
 int pthread_sigmask(int how, const sigset_t *set, sigset_t *oldset)
 {
-	return uk_thread_sigmask(how, set, oldset);
+    // return uk_thread_sigmask(how, set, oldset);
+    //  TODO:
+    errno = ENOSYS;
+    return -1;
 }
