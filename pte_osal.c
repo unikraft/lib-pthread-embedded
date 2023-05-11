@@ -39,12 +39,12 @@
 
 
 typedef struct pte_thread_data {
+	/* Unikraft thread - must be first, see pte_threadhandle_to_ukthread */
+	struct uk_thread *uk_thread;
 	/* thread routine */
 	pte_osThreadEntryPoint entry_point;
 	/* thread routine arguments */
 	void *argv;
-	/* Unikraft thread */
-	struct uk_thread *uk_thread;
 	/* TLS */
 	void *tls;
 	/* Semaphore for triggering thread start */
