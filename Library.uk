@@ -1,0 +1,5 @@
+name        := "pthread-embedded"
+description := "POSIX Threads for embedded systems (PTE)."
+gitrepo     := "https://github.com/RWTH-OS/pthread-embedded.git"
+license     := "LGPL-2.1"
+version     := 44b41d7 sha256:92160588d3734b6d3e394bd6d30c18c50ac765705c6cad0d7d114706d5881e8a https://github.com/RWTH-OS/pthread-embedded/archive/44b41d7.tar.gz
