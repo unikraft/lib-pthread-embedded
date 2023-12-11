@@ -64,7 +64,7 @@ typedef struct pte_thread_data {
 
 static bool initialized /* false */;
 
-static int pthread_initcall(void)
+static int pthread_initcall(struct uk_init_ctx *ictx __unused)
 {
 	int result;
 
@@ -75,7 +75,7 @@ static int pthread_initcall(void)
 		initialized = true;
 	return result;
 }
-uk_early_initcall_prio(pthread_initcall, UK_PRIO_EARLIEST);
+uk_early_initcall_prio(pthread_initcall, 0x0, UK_PRIO_EARLIEST);
 
 pte_osResult pte_osInit(void)
 {
