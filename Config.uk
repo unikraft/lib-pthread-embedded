@@ -1,7 +1,7 @@
 menuconfig LIBPTHREAD_EMBEDDED
 	bool "libpthread-embedded - An embedded pthread library"
 	default n
-	select LIBNOLIBC if !HAVE_LIBC
+	select LIBNEWLIBC
 	select LIBUKDEBUG
 	select LIBUKALLOC
 	select LIBUKSCHED
